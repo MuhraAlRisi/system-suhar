@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منظومة النقل المدرسي - مدرسة صحار بن العباس للبنين (5-10)</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- SheetJS (xlsx) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+  <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Google Cairo Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    
+    .clean-gradient-bg {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0284c7 100%);
+    }
+    
+    @keyframes floatSchoolLogo {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-8px) scale(1); }
+    }
+
+    .school-logo-animated {
+      animation: floatSchoolLogo 4s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .school-logo-animated:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.8);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .school-logo-animated {
+        animation: none;
+      }
+    }
+    
+    .custom-marker-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px !important;
+      height: 32px !important;
+      border-radius: 50%;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      border: 2px solid #ffffff;
+      transition: transform 0.2s ease;
+    }
+    .custom-marker-icon:hover {
+      transform: scale(1.25);
+      z-index: 1000 !important;
+    }
+    
+    .leaflet-popup-content-wrapper {
+      border-radius: 1rem;
+      padding: 6px;
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- ============================================== -->
+  <!-- الصفحة الأولى: واجهة البداية -->
+  <!-- ============================================== -->
+  <section id="welcomePage" class="fixed inset-0 z-50 clean-gradient-bg flex flex-col justify-between p-6 sm:p-10 text-white transition-opacity duration-700 overflow-y-auto">
+    
+    <!-- شعار المدرسة المتحرك أعلى يمين الصفحة مع اسم المدرسة في سطر واحد -->
+    <div class="w-full flex items-center justify-start gap-3 z-20">
+      <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 border border-white/30 rounded-2xl p-2 backdrop-blur-md flex items-center justify-center overflow-hidden school-logo-animated cursor-pointer shadow-2xl">
+        <img src="https://i.postimg.cc/dVH3zQRZ/school-logo.png" alt="شعار المدرسة" class="w-full h-full object-contain" onerror="this.src='https://schoolbus-6bd0aa.tiiny.site/logo.png'">
+      </div>
+      <span class="text-sm sm:text-lg font-extrabold text-cyan-200 tracking-wide drop-shadow-md">مدرسة صحار بن العباس للبنين (5–10)</span>
+    </div>
+
+    <!-- المحتوى مقسم إلى عمودين -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-7xl mx-auto w-full my-auto py-4">
+      
+      <!-- العمود اليمين -->
+      <div class="lg:col-span-6 flex flex-col items-center lg:items-start text-center lg:text-right space-y-5">
+        <div>
+          <h1 class="text-2xl sm:text-4xl font-black text-cyan-300 tracking-tight leading-snug drop-shadow-lg">قاعدة بيانات النقل المدرسي </h1>
+          <p class="text-sm sm:text-base text-slate-200 mt-2">محافظة شمال الباطنة - ولاية لوى</p>
+        </div>
+
+        <!-- بطاقة الإعداد المتناسقة -->
+        <div class="px-6 py-4 rounded-2xl bg-slate-900/80 border border-white/20 backdrop-blur-md flex flex-col items-center lg:items-start space-y-1.5 w-full max-w-md shadow-2xl">
+          <p class="text-sm sm:text-base font-bold text-cyan-200 flex items-center gap-2">
+            <i class="fa-solid fa-user-tie text-cyan-400"></i> إعداد: أحمد بن خالد بن سيف الريسي
+          </p>
+          <p class="text-xs sm:text-sm font-semibold text-slate-300 pl-6">منسق شؤون مدرسية</p>
+        </div>
+
+        <!-- زر الدخول إلى النظام -->
+        <button onclick="enterSystem()" class="px-8 py-4 bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-600 hover:to-sky-700 text-white font-extrabold rounded-2xl shadow-xl hover:shadow-cyan-500/25 transition transform hover:-translate-y-1 flex items-center gap-3 text-base">
+          <span>الدخول إلى النظام</span>
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+
+      <!-- العمود اليسار: صورة الباص -->
+      <div class="lg:col-span-6 flex items-center justify-center p-2">
+        <div class="w-full max-w-xl drop-shadow-2xl">
+          <img src="https://cdn.imagetourls.com/uploads/tyImg/1b9Z7NOaT.png" alt="حافلة المدرسة والشخصيات" class="w-full h-auto object-contain rounded-3xl border border-white/20 shadow-2xl bg-white/5 p-3 backdrop-blur-sm" onerror="this.src='https://i.postimg.cc/dVH3zQRZ/school-logo.png'">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- تذييل بسيط -->
+    <div class="w-full text-center text-xs text-slate-300">
+      جميع الحقوق محفوظة © 2026 - مدرسة صحار بن العباس للبنين (5-10)
+    </div>
+
+  </section>
+
+  <!-- ============================================== -->
+  <!-- الصفحة الثانية: المنظومة الرئيسية -->
+  <!-- ============================================== -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- شعار المدرسة في الترويسة -->
+      <div class="flex items-center gap-3">
+        <button onclick="returnToWelcome()" title="الرجوع لصفحة الغلاف" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition">
+          <i class="fa-solid fa-house"></i>
+        </button>
+
+        <div class="w-12 h-12 bg-white rounded-xl p-1 border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden">
+          <img src="https://i.postimg.cc/dVH3zQRZ/school-logo.png" alt="شعار المدرسة" class="w-full h-full object-contain" onerror="this.src='https://schoolbus-6bd0aa.tiiny.site/logo.png'">
+        </div>
+
+        <div>
+          <h1 class="text-base sm:text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+            مدرسة صحار بن العباس للبنين (5-10)
+            <span class="text-xs bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded-full border border-cyan-300">ولاية لوى</span>
+          </h1>
+          <p class="text-xs text-slate-500 font-semibold">منظومة النقل المدرسي</p>
+        </div>
+      </div>
+
+      <!-- أزرار الإجراءات السريعة -->
+      <div class="flex items-center flex-wrap gap-2">
+        <button onclick="openPrintModal()" class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl shadow-sm transition">
+          <i class="fa-solid fa-print"></i>
+          <span>طباعة الكشف</span>
+        </button>
+
+        <button onclick="exportToExcel()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl shadow-sm transition">
+          <i class="fa-solid fa-file-excel"></i>
+          <span>تصدير Excel</span>
+        </button>
+
+        <label class="inline-flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl shadow-sm cursor-pointer transition">
+          <i class="fa-solid fa-file-import"></i>
+          <span>استيراد Excel</span>
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelImport(event)">
+        </label>
+
+        <button onclick="openStudentModal()" class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-xl shadow-md transition">
+          <i class="fa-solid fa-user-plus text-cyan-400"></i>
+          <span>إضافة طالب</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+    
+    <!-- KPI Counters -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">إجمالي الطلاب</p>
+          <h3 id="statTotalStudents" class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">سائقي الحافلات</p>
+          <h3 id="statTotalDrivers" class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-bus-simple"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">المناطق المشمولة</p>
+          <h3 id="statTotalAreas" class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-map-location-dot"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">حافلات النقل الفعالة</p>
+          <h3 id="statActiveBuses" class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-route"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+        
+        <!-- Live Search Field -->
+        <div class="md:col-span-5 relative">
+          <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="searchInput" oninput="applyFilters()" placeholder="ابحث باسم الطالب، المنطقة، السائق..." class="w-full pr-10 pl-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+
+        <!-- Filter by Area -->
+        <div class="md:col-span-3 flex items-center gap-1.5">
+          <label class="text-xs font-bold text-slate-600 whitespace-nowrap"><i class="fa-solid fa-location-dot text-rose-500 ml-1"></i>المنطقة:</label>
+          <select id="areaFilter" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-cyan-500">
+            <option value="ALL">جميع المناطق</option>
+          </select>
+        </div>
+
+        <!-- Filter by Driver -->
+        <div class="md:col-span-3 flex items-center gap-1.5">
+          <label class="text-xs font-bold text-slate-600 whitespace-nowrap"><i class="fa-solid fa-bus text-cyan-600 ml-1"></i>السائق:</label>
+          <select id="driverFilter" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-cyan-500">
+            <option value="ALL">جميع السائقين</option>
+          </select>
+        </div>
+
+        <!-- Manage Drivers Button -->
+        <div class="md:col-span-1">
+          <button onclick="openDriverModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1" title="إدارة السائقين">
+            <i class="fa-solid fa-id-card"></i>
+            <span>السائقين</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Map & Cards View -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Interactive Satellite Map Section -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[560px]">
+        <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-bold text-xs sm:text-sm text-slate-700">مدرسة صحار بن العباس (نقطة الانطلاق) ومواقع الطلاب</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="resetMapView()" class="text-xs bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 px-2 py-1 rounded-lg transition font-semibold">
+              <i class="fa-solid fa-compress ml-1"></i> توسيط المدرسة
+            </button>
+            <span id="mapCounter" class="text-xs bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-1 rounded-lg font-bold">0 نقطة</span>
+          </div>
+        </div>
+
+        <div class="relative flex-1 w-full">
+          <div id="map" class="w-full h-full z-10"></div>
+        </div>
+      </div>
+
+      <!-- Students Card Panel -->
+      <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[560px]">
+        <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h2 class="font-bold text-sm text-slate-800">قائمة الطلاب</h2>
+            <p class="text-[11px] text-slate-500">انقر على الطالب لمحاكاة انطلاق الحافلة</p>
+          </div>
+          <span id="filteredCountBadge" class="bg-cyan-100 text-cyan-800 text-xs font-extrabold px-2.5 py-1 rounded-full">0 طالب</span>
+        </div>
+
+        <div id="studentListContainer" class="flex-1 overflow-y-auto p-3 space-y-2.5"></div>
+      </div>
+
+    </div>
+
+    <!-- Full Data Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-bold text-base text-slate-800">سجل كشف الطلاب التفصيلي</h2>
+          <p class="text-xs text-slate-500">كشف الحافلات ومواقع الصعود في ولاية لوى</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="downloadExcelTemplate()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl transition">
+            <i class="fa-solid fa-download ml-1"></i> نموذج Excel فارغ
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-right text-xs sm:text-sm">
+          <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-3">م</th>
+              <th class="py-3 px-4">اسم الطالب</th>
+              <th class="py-3 px-3">الرقم المدرسي</th>
+              <th class="py-3 px-3">الصف</th>
+              <th class="py-3 px-3">المنطقة (ولاية لوى)</th>
+              <th class="py-3 px-4">سائق الحافلة</th>
+              <th class="py-3 px-3">رقم الحافلة</th>
+              <th class="py-3 px-4">هاتف ولي الأمر</th>
+              <th class="py-3 px-3 text-center">Google Earth</th>
+              <th class="py-3 px-4 text-center">إجراءات النقل والحافلات</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modals -->
+  <!-- 1. Print Specific Area & Driver Modal -->
+  <div id="printAreaModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-amber-500 p-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-print text-lg"></i>
+          <h3 class="font-extrabold text-base">طباعة كشف منطقة وسائق محدد</h3>
+        </div>
+        <button onclick="closePrintModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">اختر السائق (اختياري):</label>
+          <select id="printSelectDriver" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500">
+            <option value="ALL">جميع السائقين</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">اختر المنطقة من القائمة:</label>
+          <select id="printSelectArea" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500">
+            <option value="ALL">جميع المناطق</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">أو اكتب اسم المنطقة يدوياً:</label>
+          <input type="text" id="printCustomAreaInput" placeholder="مثال: الفليج، فزح..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div class="pt-3 border-t flex justify-end gap-2">
+          <button type="button" onclick="closePrintModal()" class="px-4 py-2 rounded-xl border text-xs font-bold text-slate-600">إلغاء</button>
+          <button type="button" onclick="executeAreaPrint()" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md">
+            <i class="fa-solid fa-print"></i>
+            <span>بدء الطباعة الآن</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Add/Edit Student Modal -->
+  <div id="studentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all max-h-[95vh] flex flex-col">
+      <div class="bg-gradient-to-r from-cyan-600 to-sky-600 p-4 text-white flex items-center justify-between">
+        <h3 id="studentModalTitle" class="font-extrabold text-base">إضافة طالب جديد</h3>
+        <button onclick="closeStudentModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="studentForm" onsubmit="saveStudent(event)" class="p-5 overflow-y-auto space-y-4 flex-1">
+        <input type="hidden" id="studentIdInput">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">اسم الطالب رباعي *</label>
+            <input type="text" id="studentNameInput" required placeholder="مثال: يوسف أحمد الريسي" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الرقم المدرسي</label>
+            <input type="text" id="studentNumInput" placeholder="2512202200XX" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الصف والشعبة *</label>
+            <input type="text" id="studentGradeInput" required placeholder="مثال: الخامس / 1" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">هاتف ولي الأمر *</label>
+            <input type="tel" id="studentPhoneInput" required placeholder="9XXXXXXX" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">المنطقة في ولاية لوى *</label>
+            <input type="text" id="studentAreaInput" required placeholder="مثال: الفليج، فزح، الجيلة" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" oninput="checkAreaRegistry(this.value)">
+            <p id="areaVerificationStatus" class="text-[10px] mt-1 text-slate-500 font-bold">أدخل اسم المنطقة أو اختر مكانها على الخريطة...</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">سائق الحافلة المسؤول *</label>
+          <select id="studentDriverSelect" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"></select>
+        </div>
+
+        <!-- Interactive Map Picker for Student Pickup Point -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-slate-700"><i class="fa-solid fa-map-pin text-rose-500 ml-1"></i>نقطة صعود الطالب (انقر على الخريطة أو اسحب العلامة لتحديد الموقع بدقة):</label>
+            <span id="coordDisplayText" class="text-[11px] font-mono text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">لم يتم التحديد</span>
+          </div>
+          <div id="studentPickerMap" class="w-full h-48 rounded-xl border border-slate-300 z-10"></div>
+          <p class="text-[11px] text-slate-500">ملاحظة: عند كتابة اسم منطقة معتمدة، ستنتقل الخريطة تلقائياً إلى موقعها الصحيح.</p>
+        </div>
+
+        <input type="hidden" id="studentLatInput">
+        <input type="hidden" id="studentLngInput">
+
+        <div class="pt-3 border-t flex justify-between items-center">
+          <button type="button" onclick="openTransferModal()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-right-left"></i>
+            <span>نقل الطالب إلى حافلة أخرى</span>
+          </button>
+          
+          <div class="flex gap-2">
+            <button type="button" onclick="closeStudentModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold">إلغاء</button>
+            <button type="submit" class="px-6 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold">احفظ البيانات</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Driver Management Modal -->
+  <div id="driverModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
+      <div class="bg-slate-900 p-4 text-white flex items-center justify-between">
+        <h3 class="font-extrabold text-base">إدارة سائقي الحافلات</h3>
+        <button onclick="closeDriverModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-5 flex-1">
+        <form id="newDriverForm" onsubmit="saveDriver(event)" class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <h4 class="font-bold text-xs text-slate-700">إضافة سائق جديد:</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input type="text" id="newDriverName" placeholder="اسم السائق" required class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs">
+            <input type="tel" id="newDriverPhone" placeholder="رقم الهاتف" required class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs">
+            <input type="text" id="newDriverBusNumber" placeholder="رقم الحافلة (مثال: حافلة 1)" required class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input type="text" id="newDriverZone" placeholder="المنطقة المخصصة" required class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:col-span-2">
+            <input type="number" id="newDriverCapacity" placeholder="السعة" value="25" required class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs">
+          </div>
+          <button type="submit" class="w-full py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-bold">+ حفظ وإضافة السائق</button>
+        </form>
+
+        <div>
+          <h4 class="font-bold text-xs text-slate-700 mb-2">السائقون المسجلون:</h4>
+          <div id="driversListContainer" class="space-y-2"></div>
+        </div>
+      </div>
+      <div class="p-3 bg-slate-50 border-t text-right">
+        <button onclick="closeDriverModal()" class="px-5 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Transfer Student Modal -->
+  <div id="transferStudentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-purple-600 p-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-right-left text-lg"></i>
+          <h3 class="font-extrabold text-base">نقل الطالب إلى حافلة أخرى</h3>
+        </div>
+        <button onclick="closeTransferModal()" class="w-8 h-8 rounded-full bg-white/25 hover:bg-white/40 flex items-center justify-center text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <input type="hidden" id="transferStudentIdInput">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">اختر الحافلة / السائق الجديد:</label>
+          <select id="transferTargetDriverSelect" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-purple-500"></select>
+        </div>
+
+        <div class="pt-3 border-t flex justify-end gap-2">
+          <button type="button" onclick="closeTransferModal()" class="px-4 py-2 rounded-xl border text-xs font-bold text-slate-600">إلغاء</button>
+          <button type="button" onclick="executeStudentTransfer()" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-check"></i>
+            <span>تأكيد النقل</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-5 left-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div id="toastIcon" class="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xs">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <span id="toastMessage" class="text-xs sm:text-sm font-bold">تم الإجراء بنجاح</span>
+  </div>
+
+  <!-- Firebase & Logic -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAoufePeH1sQxX5-tiOsBQeLXgN67oTDLk",
+      authDomain: "school-bus-system-3be4c.firebaseapp.com",
+      projectId: "school-bus-system-3be4c",
+      storageBucket: "school-bus-system-3be4c.firebasestorage.app",
+      messagingSenderId: "551675443464",
+      appId: "1:551675443464:web:082f701fb95867e20694bd",
+      measurementId: "G-BRWTY0YYNK"
+    };
+
+    let db;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+    } catch(err) {
+      console.warn("Firebase Init Error:", err);
+    }
+
+    let drivers = [];
+    let students = [];
+    let filteredStudents = [];
+    let areasRegistry = {}; 
+    let map = null;
+    let mapMarkersGroup = null;
+    let activeBusMarker = null;
+    let activeRouteLine = null;
+    let pickerMap = null;
+    let pickerMarker = null;
+
+    // موقع مدرسة صحار بن العباس للبنين المحدث
+    const SCHOOL_LOCATION = { lat: 24.51406, lng: 56.46147, name: "مدرسة صحار بن العباس للبنين (5-10)" };
+
+    // السجل المحدث والشامل لجميع مناطق ولاية لوى والقرى الجبلية والساحلية
+    const DEFAULT_LIWA_AREAS = {
+      "مدرسة صحار بن العباس": { lat: 24.51406, lng: 56.46147, verified: true, source: "Google Maps - موقع المدرسة" },
+      "الجيلة": { lat: 24.53281, lng: 56.49230, verified: true, source: "Google Maps - ولاية لوى" },
+      "الفليج": { lat: 24.52647, lng: 56.47479, verified: true, source: "Google Maps - ولاية لوى" },
+      "فزح": { lat: 24.50867, lng: 56.44673, verified: true, source: "Google Maps - ولاية لوى" },
+      "الزهيمي": { lat: 24.45403, lng: 56.29014, verified: true, source: "Google Maps - ولاية لوى" },
+      "الرسيس": { lat: 24.54981, lng: 56.46359, verified: true, source: "Google Maps - ولاية لوى" },
+      "حرمول": { lat: 24.52612, lng: 56.59389, verified: true, source: "Google Maps - ولاية لوى" },
+      "أم الصفافير": { lat: 24.59934, lng: 56.43699, verified: true, source: "Google Maps - ولاية لوى" },
+      "الرسة": { lat: 24.46911, lng: 56.39877, verified: true, source: "Google Maps - ولاية لوى" },
+      "الغتل": { lat: 24.59709, lng: 56.40201, verified: true, source: "Google Maps - ولاية لوى" },
+      "شية": { lat: 24.54522, lng: 56.42440, verified: true, source: "Google Maps - ولاية لوى" },
+      "الحميضة": { lat: 24.57478, lng: 56.39641, verified: true, source: "Google Maps - ولاية لوى" },
+      "مجري": { lat: 24.57562, lng: 56.42580, verified: true, source: "Google Maps - ولاية لوى" },
+      "المصدار": { lat: 24.61572, lng: 56.36704, verified: true, source: "Google Maps - ولاية لوى" },
+      "ضبعين": { lat: 24.51549, lng: 56.36844, verified: true, source: "Google Maps - ولاية لوى" },
+      "القطيطيرة": { lat: 24.48883, lng: 56.36690, verified: true, source: "Google Maps - ولاية لوى" },
+      "الاكيهف": { lat: 24.52855, lng: 56.29573, verified: true, source: "Google Maps - ولاية لوى" },
+      "مجهل": { lat: 24.48248, lng: 56.31832, verified: true, source: "Google Maps - ولاية لوى" },
+      "لوى الجديدة غرب": { lat: 24.51556, lng: 56.56725, verified: true, source: "Google Maps - ولاية لوى" },
+      "وادي الأسيل": { lat: 24.49298, lng: 56.40890, verified: true, source: "Google Maps - ولاية لوى" },
+      "الرميلة": { lat: 24.50684, lng: 56.59529, verified: true, source: "Google Maps - ولاية لوى" },
+      "الصباخ": { lat: 24.51060, lng: 56.45675, verified: true, source: "Google Maps - ولاية لوى" },
+      "القطاني": { lat: 24.51436, lng: 56.33707, verified: true, source: "Google Maps - ولاية لوى" },
+      "مدينة الطيب شمال": { lat: 24.56079, lng: 56.52535, verified: true, source: "Google Maps - ولاية لوى" },
+      "الزاهية": { lat: 24.45740, lng: 56.59596, verified: true, source: "Google Maps - ولاية لوى" },
+      "الدريسيات": { lat: 24.51500, lng: 56.35000, verified: true, source: "Google Maps - ولاية لوى" },
+      "السمام": { lat: 24.51337, lng: 56.35525, verified: true, source: "Google Maps - ولاية لوى" },
+      "المخطى": { lat: 24.52559, lng: 56.33068, verified: true, source: "Google Maps - ولاية لوى" }
+    };
+
+    const DRIVER_COLORS = ['#00aeee', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#f97316', '#14b8a6', '#6366f1'];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initLeafletMap();
+      setupFirebaseRealtime();
+    });
+
+    function enterSystem() {
+      const welcome = document.getElementById('welcomePage');
+      welcome.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        welcome.classList.add('hidden');
+        if (map) map.invalidateSize();
+      }, 700);
+    }
+
+    function returnToWelcome() {
+      const welcome = document.getElementById('welcomePage');
+      welcome.classList.remove('hidden');
+      setTimeout(() => {
+        welcome.classList.remove('opacity-0', 'pointer-events-none');
+      }, 50);
+    }
+
+    function setupFirebaseRealtime() {
+      if (!db) {
+        areasRegistry = DEFAULT_LIWA_AREAS;
+        return;
+      }
+
+      db.collection("areas").onSnapshot((snapshot) => {
+        areasRegistry = { ...DEFAULT_LIWA_AREAS };
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.name) {
+            areasRegistry[data.name.trim()] = {
+              lat: data.lat,
+              lng: data.lng,
+              verified: true,
+              source: data.source || "موقع محفوظ"
+            };
+          }
+        });
+        renderAreaFilter();
+      }, err => {
+        areasRegistry = DEFAULT_LIWA_AREAS;
+      });
+
+      db.collection("drivers").onSnapshot((snapshot) => {
+        drivers = [];
+        snapshot.forEach(doc => drivers.push({ ...doc.data(), id: doc.id }));
+        renderDriverSelects();
+        applyFilters();
+      });
+
+      db.collection("students").onSnapshot((snapshot) => {
+        students = [];
+        snapshot.forEach(doc => students.push({ ...doc.data(), id: doc.id }));
+        renderAreaFilter();
+        applyFilters();
+      });
+    }
+
+    function initLeafletMap() {
+      map = L.map('map', { zoomControl: true }).setView([SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng], 13);
+
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        attribution: '© Google Earth Satellite - ولاية لوى'
+      }).addTo(map);
+
+      mapMarkersGroup = L.layerGroup().addTo(map);
+
+      const schoolIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="custom-marker-icon" style="background-color: #0284c7; width: 38px !important; height: 38px !important;">
+                 <i class="fa-solid fa-school text-sm"></i>
+               </div>`,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
+        popupAnchor: [0, -19]
+      });
+
+      L.marker([SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng], { icon: schoolIcon })
+        .addTo(map)
+        .bindPopup(`<div class="p-1 text-right font-bold"><i class="fa-solid fa-school text-cyan-600 ml-1"></i>${SCHOOL_LOCATION.name}<br><span class="text-xs text-slate-500 font-normal">نقطة انطلاق حافلات النقل المدرسي</span></div>`);
+    }
+
+    function resetMapView() {
+      map.setView([SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng], 13);
+    }
+
+    function openGoogleEarth(lat, lng, areaName) {
+      let url = "";
+      if (lat && lng) {
+        url = `https://earth.google.com/web/@${lat},${lng},100a,800d,35y,0h,0t,0r`;
+      } else if (areaName) {
+        url = `https://earth.google.com/web/search/${encodeURIComponent(areaName + ' ولاية لوى سلطنة عمان')}`;
+      } else {
+        url = `https://earth.google.com/web/`;
+      }
+      window.open(url, '_blank');
+    }
+
+    function normalizeArabicText(str) {
+      if (!str) return "";
+      return str.trim()
+        .replace(/[إأآا]/g, "ا")
+        .replace(/ة/g, "ه")
+        .replace(/ى/g, "ي")
+        .replace(/[\u064b-\u0652]/g, "")
+        .replace(/\s+/g, " ");
+    }
+
+    function findAreaInRegistry(areaName) {
+      if (!areaName) return null;
+      const cleanInput = normalizeArabicText(areaName);
+      for (let key in areasRegistry) {
+        if (normalizeArabicText(key) === cleanInput) {
+          return { name: key, ...areasRegistry[key] };
+        }
+      }
+      for (let key in areasRegistry) {
+        if (normalizeArabicText(key).includes(cleanInput) || cleanInput.includes(normalizeArabicText(key))) {
+          return { name: key, ...areasRegistry[key] };
+        }
+      }
+      return null;
+    }
+
+    function checkAreaRegistry(val) {
+      const statusEl = document.getElementById('areaVerificationStatus');
+      if (!val.trim()) {
+        statusEl.innerText = "أدخل اسم المنطقة";
+        statusEl.className = "text-[10px] mt-1 text-slate-500 font-bold";
+        return;
+      }
+      const found = findAreaInRegistry(val);
+      if (found) {
+        statusEl.innerText = `✓ موثق (${found.source})`;
+        statusEl.className = "text-[10px] mt-1 text-emerald-600 font-bold";
+        if (pickerMap && found.lat && found.lng) {
+          pickerMarker.setLatLng([found.lat, found.lng]);
+          pickerMap.setView([found.lat, found.lng], 15);
+          updateCoordFields(found.lat, found.lng);
+        }
+      } else {
+        statusEl.innerText = "⚠ الموقع جديد، حدد نقطة الصعود بدقة على الخريطة أدناه";
+        statusEl.className = "text-[10px] mt-1 text-amber-600 font-bold";
+      }
+    }
+
+    function updateMapMarkers() {
+      if (!map || !mapMarkersGroup) return;
+      mapMarkersGroup.clearLayers();
+
+      if (filteredStudents.length === 0) {
+        document.getElementById('mapCounter').innerText = '0 نقطة';
+        return;
+      }
+
+      const bounds = [[SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng]];
+      filteredStudents.forEach(st => {
+        let lat = st.lat;
+        let lng = st.lng;
+        
+        if (!lat || !lng) {
+          const match = findAreaInRegistry(st.area);
+          lat = match ? match.lat : SCHOOL_LOCATION.lat;
+          lng = match ? match.lng : SCHOOL_LOCATION.lng;
+        }
+
+        const driver = drivers.find(d => d.id === st.driverId) || { name: 'غير محدد', color: '#00aeee', busNumber: '-' };
+
+        const markerIcon = L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div class="custom-marker-icon" style="background-color: ${driver.color};">
+                   <i class="fa-solid fa-user-graduate text-xs"></i>
+                 </div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16]
+        });
+
+        const popupContent = `
+          <div class="p-1 space-y-2 text-right">
+            <strong class="text-xs font-black text-slate-800">${st.name}</strong>
+            <p class="text-xs text-slate-600"><i class="fa-solid fa-location-dot text-rose-500 ml-1"></i> المنطقة: <strong>${st.area}</strong></p>
+            <p class="text-xs font-bold" style="color:${driver.color}"><i class="fa-solid fa-bus ml-1"></i> ${driver.name} (${driver.busNumber})</p>
+            <div class="pt-2 flex gap-1 border-t">
+              <button onclick="simulateBusJourney('${st.id}')" class="flex-1 py-1 bg-emerald-600 text-white rounded text-xs font-bold"><i class="fa-solid fa-bus ml-1"></i> انطلاق الحافلة</button>
+              <button onclick="editStudent('${st.id}')" class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-bold"><i class="fa-solid fa-pen"></i></button>
+            </div>
+          </div>
+        `;
+
+        const marker = L.marker([lat, lng], { icon: markerIcon }).bindPopup(popupContent);
+        mapMarkersGroup.addLayer(marker);
+        bounds.push([lat, lng]);
+      });
+
+      document.getElementById('mapCounter').innerText = `${filteredStudents.length} نقطة محددة`;
+    }
+
+    function simulateBusJourney(studentId) {
+      const st = students.find(s => s.id === studentId);
+      if (!st || !st.lat || !st.lng) {
+        alert("موقع الطالب غير محدد بدقة.");
+        return;
+      }
+
+      const driver = drivers.find(d => d.id === st.driverId) || { name: 'السائق', color: '#00aeee', busNumber: 'الحافلة' };
+
+      if (activeBusMarker) map.removeLayer(activeBusMarker);
+      if (activeRouteLine) map.removeLayer(activeRouteLine);
+
+      activeRouteLine = L.polyline([
+        [SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng],
+        [st.lat, st.lng]
+      ], { color: driver.color, weight: 4, dashArray: '6, 6' }).addTo(map);
+
+      const busIcon = L.divIcon({
+        className: 'bus-moving-icon',
+        html: `<div style="background-color: ${driver.color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 2px solid white;">
+                 <i class="fa-solid fa-bus text-xs animate-bounce"></i>
+               </div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      activeBusMarker = L.marker([SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng], { icon: busIcon }).addTo(map);
+      map.setView([SCHOOL_LOCATION.lat, SCHOOL_LOCATION.lng], 14);
+
+      let steps = 40;
+      let currentStep = 0;
+      let startLat = SCHOOL_LOCATION.lat;
+      let startLng = SCHOOL_LOCATION.lng;
+      let targetLat = st.lat;
+      let targetLng = st.lng;
+
+      showToast(`بدء انطلاق ${driver.name} (${driver.busNumber}) من المدرسة نحو ${st.name}...`, 'info');
+
+      let interval = setInterval(() => {
+        currentStep++;
+        let lat = startLat + (targetLat - startLat) * (currentStep / steps);
+        let lng = startLng + (targetLng - startLng) * (currentStep / steps);
+        activeBusMarker.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
+
+        if (currentStep >= steps) {
+          clearInterval(interval);
+          showToast(`تم الوصول إلى الوجهة بنجاح`, 'success');
+        }
+      }, 50);
+    }
+
+    function applyFilters() {
+      const search = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const selectedDriverId = document.getElementById('driverFilter').value;
+      const selectedArea = document.getElementById('areaFilter').value;
+
+      filteredStudents = students.filter(st => {
+        const matchesDriver = (selectedDriverId === 'ALL' || st.driverId === selectedDriverId);
+        const matchesArea = (selectedArea === 'ALL' || (st.area && st.area.trim() === selectedArea));
+        const matchesSearch = !search || 
+          (st.name && st.name.toLowerCase().includes(search)) || 
+          (st.area && st.area.toLowerCase().includes(search)) ||
+          (st.phone && st.phone.includes(search));
+        
+        return matchesDriver && matchesArea && matchesSearch;
+      });
+
+      renderKPIs();
+      renderStudentsList();
+      renderStudentsTable();
+      updateMapMarkers();
+    }
+
+    function renderKPIs() {
+      document.getElementById('statTotalStudents').innerText = students.length;
+      document.getElementById('statTotalDrivers').innerText = drivers.length;
+      const uniqueAreas = new Set(students.map(s => (s.area || '').trim()).filter(Boolean));
+      document.getElementById('statTotalAreas').innerText = uniqueAreas.size;
+      document.getElementById('statActiveBuses').innerText = drivers.length;
+      document.getElementById('filteredCountBadge').innerText = `${filteredStudents.length} طالب`;
+    }
+
+    function renderAreaFilter() {
+      const areaSelect = document.getElementById('areaFilter');
+      const currentVal = areaSelect.value;
+      const uniqueAreas = [...new Set(students.map(s => (s.area || '').trim()).filter(Boolean))];
+      
+      areaSelect.innerHTML = `<option value="ALL">جميع المناطق (${uniqueAreas.length})</option>` +
+        uniqueAreas.map(a => `<option value="${a}">${a}</option>`).join('');
+      areaSelect.value = currentVal || 'ALL';
+    }
+
+    function renderDriverSelects() {
+      const filterSelect = document.getElementById('driverFilter');
+      const studentModalSelect = document.getElementById('studentDriverSelect');
+
+      filterSelect.innerHTML = `<option value="ALL">جميع السائقين (${drivers.length})</option>` +
+        drivers.map(d => `<option value="${d.id}">${d.name} (${d.busNumber})</option>`).join('');
+
+      studentModalSelect.innerHTML = drivers.length === 0 
+        ? `<option value="">يرجى إضافة سائق أولاً</option>`
+        : drivers.map(d => `<option value="${d.id}">${d.name} - ${d.busNumber} (${d.zone})</option>`).join('');
+    }
+
+    function renderStudentsList() {
+      const container = document.getElementById('studentListContainer');
+      if (filteredStudents.length === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-2">
+            <i class="fa-solid fa-user-slash text-3xl"></i>
+            <p class="font-bold text-sm">لا يوجد طلاب مسجلون حالياً</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredStudents.map(st => {
+        const driver = drivers.find(d => d.id === st.driverId) || { name: 'غير محدد', color: '#64748b', busNumber: '-' };
+        return `
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2 hover:border-cyan-400 transition cursor-pointer" onclick="simulateBusJourney('${st.id}')">
+            <div class="flex items-start justify-between">
+              <div>
+                <h4 class="font-bold text-sm text-slate-800">${st.name}</h4>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  <i class="fa-solid fa-location-dot text-rose-500 ml-1"></i>${st.area} 
+                  <span class="text-slate-300 mx-1">•</span> ${st.grade}
+                </p>
+              </div>
+              <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                <button onclick="simulateBusJourney('${st.id}')" title="انطلاق الحافلة من المدرسة" class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 flex items-center gap-1">
+                  <i class="fa-solid fa-bus"></i> انطلاق
+                </button>
+                <button onclick="openGoogleEarth(${st.lat}, ${st.lng}, '${st.area}')" title="عرض في Google Earth" class="px-2 py-1 bg-cyan-50 text-cyan-600 rounded-lg text-xs font-bold hover:bg-cyan-100"><i class="fa-solid fa-earth-americas"></i></button>
+                <button onclick="editStudent('${st.id}')" class="w-7 h-7 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteStudent('${st.id}')" class="w-7 h-7 bg-rose-50 text-rose-600 rounded-lg text-xs hover:bg-rose-100"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            </div>
+            <div class="pt-2 border-t flex items-center justify-between text-xs">
+              <span class="font-bold" style="color: ${driver.color}"><i class="fa-solid fa-bus ml-1"></i>${driver.name} (${driver.busNumber})</span>
+              <a href="tel:${st.phone}" class="text-slate-500 hover:text-cyan-600 font-bold">${st.phone}</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStudentsTable() {
+      const tbody = document.getElementById('studentsTableBody');
+      if (filteredStudents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-slate-400 font-bold">لا توجد بيانات مسجلة</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filteredStudents.map((st, idx) => {
+        const driver = drivers.find(d => d.id === st.driverId) || { name: 'غير محدد', color: '#64748b', busNumber: '-' };
+        return `
+          <tr class="hover:bg-slate-50 font-medium">
+            <td class="py-3 px-3 text-slate-400">${idx + 1}</td>
+            <td class="py-3 px-4 font-bold text-slate-800">${st.name}</td>
+            <td class="py-3 px-3 font-mono text-slate-500">${st.studentNum || '-'}</td>
+            <td class="py-3 px-3 text-slate-600">${st.grade}</td>
+            <td class="py-3 px-3 font-semibold text-slate-700">${st.area}</td>
+            <td class="py-3 px-4 font-bold" style="color: ${driver.color}">${driver.name}</td>
+            <td class="py-3 px-3 text-slate-600">${driver.busNumber}</td>
+            <td class="py-3 px-4"><a href="tel:${st.phone}" class="hover:text-cyan-600 font-bold">${st.phone}</a></td>
+            <td class="py-3 px-3 text-center">
+              <button onclick="openGoogleEarth(${st.lat}, ${st.lng}, '${st.area}')" class="px-2 py-1 rounded bg-cyan-100 hover:bg-cyan-200 text-cyan-800 text-xs font-bold">
+                <i class="fa-solid fa-earth-americas ml-1"></i> Earth
+              </button>
+            </td>
+            <td class="py-3 px-4 text-center flex items-center justify-center gap-1.5">
+              <button onclick="openTableTransferModal('${st.id}')" class="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm" title="نقل الطالب لحافلة أخرى">
+                <i class="fa-solid fa-right-left"></i> نقل
+              </button>
+              <button onclick="simulateBusJourney('${st.id}')" class="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs" title="انطلاق الحافلة"><i class="fa-solid fa-bus"></i></button>
+              <button onclick="editStudent('${st.id}')" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteStudent('${st.id}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs" title="حذف"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openPrintModal() {
+      const driverSelect = document.getElementById('printSelectDriver');
+      const areaSelect = document.getElementById('printSelectArea');
+
+      driverSelect.innerHTML = `<option value="ALL">جميع السائقين</option>` +
+        drivers.map(d => `<option value="${d.id}">${d.name} (${d.busNumber})</option>`).join('');
+
+      const uniqueAreas = [...new Set(students.map(s => (s.area || '').trim()).filter(Boolean))];
+      areaSelect.innerHTML = `<option value="ALL">جميع المناطق</option>` +
+        uniqueAreas.map(a => `<option value="${a}">${a}</option>`).join('');
+      
+      document.getElementById('printCustomAreaInput').value = '';
+      document.getElementById('printAreaModal').classList.remove('hidden');
+    }
+
+    function closePrintModal() {
+      document.getElementById('printAreaModal').classList.add('hidden');
+    }
+
+    function executeAreaPrint() {
+      const selectedDriverId = document.getElementById('printSelectDriver').value;
+      const selectedDropdownArea = document.getElementById('printSelectArea').value;
+      const customInputArea = document.getElementById('printCustomAreaInput').value.trim();
+
+      const targetArea = customInputArea || (selectedDropdownArea !== 'ALL' ? selectedDropdownArea : '');
+
+      const targetStudents = students.filter(s => {
+        const matchesDriver = (selectedDriverId === 'ALL' || s.driverId === selectedDriverId);
+        const matchesArea = !targetArea || (s.area && s.area.trim().toLowerCase().includes(targetArea.toLowerCase()));
+        return matchesDriver && matchesArea;
+      });
+
+      if (targetStudents.length === 0) {
+        alert("لا يوجد طلاب مطابقون للسائق والمنطقة المحددة.");
+        return;
+      }
+
+      closePrintModal();
+
+      const selectedDriverObj = drivers.find(d => d.id === selectedDriverId);
+      const driverText = selectedDriverObj ? `السائق: ${selectedDriverObj.name} (${selectedDriverObj.busNumber})` : "جميع السائقين";
+      const areaText = targetArea ? `المنطقة: ${targetArea}` : "جميع المناطق";
+
+      let rowsHtml = '';
+      targetStudents.forEach((st, i) => {
+        const driver = drivers.find(d => d.id === st.driverId) || { name: '-', busNumber: '-' };
+        rowsHtml += `
+          <tr>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${i + 1}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold;">${st.name}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${st.studentNum || '-'}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${st.grade}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; font-weight: 600;">${st.area}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;">${driver.name}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${driver.busNumber}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${st.phone}</td>
+          </tr>
+        `;
+      });
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <title>كشف طلاب - ${areaText}</title>
+          <style>
+            body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; padding: 25px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 20px; }
+            .title { font-size: 20px; font-weight: bold; margin: 0; }
+            .sub { font-size: 16px; margin: 6px 0; color: #0284c7; font-weight: bold; }
+            .meta { font-size: 14px; color: #475569; margin: 4px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+            th { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; font-weight: bold; }
+            .footer { margin-top: 40px; display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <p class="meta">سلطنة عمان - وزارة التعليم</p>
+            <h1 class="title">مدرسة صحار بن العباس للبنين (5-10) - ولاية لوى</h1>
+            <p class="sub">كشف نقل الطلاب | ${areaText} | ${driverText}</p>
+            <p class="meta">إجمالي عدد الطلاب في الكشف: ${targetStudents.length} طالب</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>م</th>
+                <th>اسم الطالب</th>
+                <th>الرقم المدرسي</th>
+                <th>الصف</th>
+                <th>المنطقة</th>
+                <th>سائق الحافلة</th>
+                <th>رقم الحافلة</th>
+                <th>هاتف ولي الأمر</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">
+            <div>مشرف النقل المدرسي: ...........................</div>
+            <div>يعتمد مدير المدرسة: ...........................</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    function openStudentModal(editingId = null) {
+      if (drivers.length === 0) {
+        alert("يرجى تسجيل سائق واحد على الأقل قبل البدء بإضافة الطلاب.");
+        openDriverModal();
+        return;
+      }
+
+      document.getElementById('studentForm').reset();
+      const modal = document.getElementById('studentModal');
+      const title = document.getElementById('studentModalTitle');
+      const idInput = document.getElementById('studentIdInput');
+
+      let initialLat = SCHOOL_LOCATION.lat;
+      let initialLng = SCHOOL_LOCATION.lng;
+
+      if (editingId) {
+        const student = students.find(s => s.id === editingId);
+        if (student) {
+          title.innerText = 'تعديل بيانات الطالب';
+          idInput.value = student.id;
+          document.getElementById('studentNameInput').value = student.name;
+          document.getElementById('studentNumInput').value = student.studentNum || '';
+          document.getElementById('studentGradeInput').value = student.grade;
+          document.getElementById('studentPhoneInput').value = student.phone;
+          document.getElementById('studentDriverSelect').value = student.driverId;
+          document.getElementById('studentAreaInput').value = student.area;
+          if (student.lat && student.lng) {
+            initialLat = student.lat;
+            initialLng = student.lng;
+          }
+          checkAreaRegistry(student.area);
+        }
+      } else {
+        title.innerText = 'إضافة طالب جديد';
+        idInput.value = '';
+        document.getElementById('areaVerificationStatus').innerText = "أدخل اسم المنطقة أو اختر مكانها على الخريطة...";
+      }
+
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        initPickerMap(initialLat, initialLng);
+      }, 300);
+    }
+
+    function initPickerMap(lat, lng) {
+      if (pickerMap) {
+        pickerMap.remove();
+        pickerMap = null;
+      }
+
+      pickerMap = L.map('studentPickerMap', { zoomControl: true }).setView([lat, lng], 13);
+
+      L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        attribution: '© Google Satellite'
+      }).addTo(pickerMap);
+
+      pickerMarker = L.marker([lat, lng], { draggable: true }).addTo(pickerMap);
+
+      updateCoordFields(lat, lng);
+
+      pickerMarker.on('dragend', function(e) {
+        const pos = pickerMarker.getLatLng();
+        updateCoordFields(pos.lat, pos.lng);
+      });
+
+      pickerMap.on('click', function(e) {
+        pickerMarker.setLatLng(e.latlng);
+        updateCoordFields(e.latlng.lat, e.latlng.lng);
+      });
+
+      pickerMap.invalidateSize();
+    }
+
+    function updateCoordFields(lat, lng) {
+      const fixedLat = parseFloat(lat).toFixed(5);
+      const fixedLng = parseFloat(lng).toFixed(5);
+      document.getElementById('studentLatInput').value = fixedLat;
+      document.getElementById('studentLngInput').value = fixedLng;
+      document.getElementById('coordDisplayText').innerText = `خط العرض: ${fixedLat}, خط الطول: ${fixedLng}`;
+    }
+
+    function closeStudentModal() {
+      document.getElementById('studentModal').classList.add('hidden');
+      if (pickerMap) {
+        pickerMap.remove();
+        pickerMap = null;
+      }
+    }
+
+    function openTransferModal() {
+      const studentId = document.getElementById('studentIdInput').value;
+      if (!studentId) {
+        alert("يرجى اختيار طالب للتعديل والنقل أولاً.");
+        return;
+      }
+      document.getElementById('transferStudentIdInput').value = studentId;
+      const select = document.getElementById('transferTargetDriverSelect');
+      select.innerHTML = drivers.map(d => `<option value="${d.id}">${d.name} - ${d.busNumber} (${d.zone})</option>`).join('');
+      document.getElementById('transferStudentModal').classList.remove('hidden');
+    }
+
+    function openTableTransferModal(studentId) {
+      document.getElementById('transferStudentIdInput').value = studentId;
+      const select = document.getElementById('transferTargetDriverSelect');
+      select.innerHTML = drivers.map(d => `<option value="${d.id}">${d.name} - ${d.busNumber} (${d.zone})</option>`).join('');
+      document.getElementById('transferStudentModal').classList.remove('hidden');
+    }
+
+    function closeTransferModal() {
+      document.getElementById('transferStudentModal').classList.add('hidden');
+    }
+
+    async function executeStudentTransfer() {
+      const studentId = document.getElementById('transferStudentIdInput').value;
+      const newDriverId = document.getElementById('transferTargetDriverSelect').value;
+      if (!studentId || !newDriverId) return;
+
+      const student = students.find(s => s.id === studentId);
+      if (student && db) {
+        student.driverId = newDriverId;
+        await db.collection("students").doc(studentId).update({ driverId: newDriverId });
+        showToast('تم نقل الطالب إلى الحافلة الجديدة بنجاح', 'success');
+        closeTransferModal();
+        applyFilters();
+      }
+    }
+
+    async function saveStudent(event) {
+      event.preventDefault();
+      const id = document.getElementById('studentIdInput').value;
+      const name = document.getElementById('studentNameInput').value.trim();
+      const studentNum = document.getElementById('studentNumInput').value.trim();
+      const grade = document.getElementById('studentGradeInput').value.trim();
+      const phone = document.getElementById('studentPhoneInput').value.trim();
+      const driverId = document.getElementById('studentDriverSelect').value;
+      const area = document.getElementById('studentAreaInput').value.trim();
+      
+      let lat = parseFloat(document.getElementById('studentLatInput').value);
+      let lng = parseFloat(document.getElementById('studentLngInput').value);
+
+      if (!lat || !lng) {
+        const match = findAreaInRegistry(area);
+        lat = match ? match.lat : SCHOOL_LOCATION.lat;
+        lng = match ? match.lng : SCHOOL_LOCATION.lng;
+      }
+
+      const docId = id || ('std-' + Date.now());
+      const studentData = { id: docId, name, studentNum, grade, phone, driverId, area, lat, lng };
+
+      if (db) {
+        await db.collection("students").doc(docId).set(studentData);
+        await db.collection("areas").doc(area).set({
+          name: area,
+          lat: lat,
+          lng: lng,
+          verified: true,
+          source: "تحديد دقيق - ولاية لوى"
+        }, { merge: true });
+
+        showToast('تم حفظ بيانات الطالب ونقطة الصعود بنجاح!', 'success');
+      }
+      closeStudentModal();
+    }
+
+    function editStudent(id) {
+      openStudentModal(id);
+    }
+
+    async function deleteStudent(id) {
+      if (confirm('هل أنت متأكد من حذف الطالب؟')) {
+        if (db) await db.collection("students").doc(id).delete();
+        showToast('تم حذف الطالب', 'info');
+      }
+    }
+
+    function openDriverModal() {
+      renderDriversManagementList();
+      document.getElementById('driverModal').classList.remove('hidden');
+    }
+
+    function closeDriverModal() {
+      document.getElementById('driverModal').classList.add('hidden');
+    }
+
+    function renderDriversManagementList() {
+      const container = document.getElementById('driversListContainer');
+      if (drivers.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400">لا يوجد سائقون مسجلون بعد.</p>`;
+        return;
+      }
+      container.innerHTML = drivers.map(d => `
+        <div class="flex items-center justify-between p-2.5 bg-white rounded-xl border">
+          <div>
+            <h5 class="font-bold text-xs text-slate-800">${d.name} (${d.busNumber})</h5>
+            <p class="text-[11px] text-slate-500">${d.zone} • ${d.phone}</p>
+          </div>
+          <button onclick="removeDriver('${d.id}')" class="text-rose-500 text-xs p-1 hover:bg-rose-50 rounded"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+      `).join('');
+    }
+
+    async function saveDriver(event) {
+      event.preventDefault();
+      const name = document.getElementById('newDriverName').value.trim();
+      const phone = document.getElementById('newDriverPhone').value.trim();
+      const busNumber = document.getElementById('newDriverBusNumber').value.trim();
+      const zone = document.getElementById('newDriverZone').value.trim();
+      const capacity = parseInt(document.getElementById('newDriverCapacity').value) || 25;
+      const color = DRIVER_COLORS[drivers.length % DRIVER_COLORS.length];
+
+      const docId = 'drv-' + Date.now();
+      const newDriver = { id: docId, name, phone, busNumber, zone, capacity, color };
+
+      if (db) {
+        await db.collection("drivers").doc(docId).set(newDriver);
+        showToast('تمت إضافة السائق بنجاح', 'success');
+      }
+      document.getElementById('newDriverForm').reset();
+    }
+
+    async function removeDriver(id) {
+      if (confirm('هل أنت متأكد من حذف السائق؟')) {
+        if (db) await db.collection("drivers").doc(id).delete();
+        showToast('تم حذف السائق', 'info');
+      }
+    }
+
+    function exportToExcel() {
+      const rows = students.map((st, idx) => {
+        const driver = drivers.find(d => d.id === st.driverId) || { name: '-', busNumber: '-' };
+        return {
+          "م": idx + 1,
+          "اسم الطالب": st.name,
+          "الرقم المدرسي": st.studentNum || "-",
+          "الصف": st.grade,
+          "المنطقة (ولاية لوى)": st.area,
+          "السائق": driver.name,
+          "رقم الحافلة": driver.busNumber,
+          "هاتف ولي الأمر": st.phone,
+          "خط العرض": st.lat,
+          "خط الطول": st.lng
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "كشف الطلاب");
+      XLSX.writeFile(wb, "كشف_نقل_الطلاب_لوى.xlsx");
+    }
+
+    function downloadExcelTemplate() {
+      const ws = XLSX.utils.json_to_sheet([{ "اسم الطالب": "", "الرقم المدرسي": "", "الصف": "", "المنطقة (ولاية لوى)": "", "السائق": "", "هاتف ولي الأمر": "", "خط العرض": SCHOOL_LOCATION.lat, "خط الطول": SCHOOL_LOCATION.lng }]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "نموذج فارغ");
+      XLSX.writeFile(wb, "نموذج_كشف_الطلاب_فارغ.xlsx");
+    }
+
+    function handleExcelImport(e) {
+      const file = e.target.files[0];
+      if (!file || !db) return;
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        const batch = db.batch();
+
+        json.forEach(row => {
+          const docId = 'std-' + (Date.now() + Math.random());
+          const areaName = row["المنطقة (ولاية لوى)"] || row["المنطقة"] || "ولاية لوى";
+          const matchArea = findAreaInRegistry(areaName);
+          const lat = parseFloat(row["خط العرض"] || row["Lat"]) || (matchArea ? matchArea.lat : SCHOOL_LOCATION.lat);
+          const lng = parseFloat(row["خط الطول"] || row["Lng"]) || (matchArea ? matchArea.lng : SCHOOL_LOCATION.lng);
+
+          batch.set(db.collection("students").doc(docId), {
+            id: docId,
+            name: row["اسم الطالب"] || row["الاسم"],
+            studentNum: row["الرقم المدرسي"] || "",
+            grade: row["الصف"] || "",
+            area: areaName,
+            phone: String(row["هاتف ولي الأمر"] || ""),
+            driverId: drivers[0] ? drivers[0].id : "",
+            lat: lat,
+            lng: lng
+          });
+        });
+        await batch.commit();
+        showToast("تم استيراد الملف بنجاح", "success");
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').innerText = message;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+  </script>
+</body></html>
